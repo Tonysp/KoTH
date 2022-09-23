@@ -1,0 +1,10 @@
+name: KoTH
+main: dev.tonysp.koth.KoTH
+version: ${pluginVersion}
+authors: [Tonysp]
+description: KoTH plugin
+
+commands:
+  koth:
+    description: Main command
+    usage: /koth
