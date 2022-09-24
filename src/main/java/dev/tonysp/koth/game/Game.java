@@ -26,6 +26,8 @@ public abstract class Game {
 
     public abstract void save ();
 
+    public abstract void finishGame ();
+
     public void parameterSet (GameParameter gameParameter) {
         this.missingParameters.remove(gameParameter);
     }

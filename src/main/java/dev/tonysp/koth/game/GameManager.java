@@ -40,40 +40,7 @@ public class GameManager implements Listener {
         this.saveInterval = plugin.getConfig().getInt("save-interval-ticks", 6000);
 
         for (String gameName : config.getKeys(false)) {
-            String failedMessage = "Failed to load the game " + gameName;
-            ConfigurationSection gameConfig = config.getConfigurationSection(gameName);
-            GameState gameState;
-            try {
-                gameState = GameState.valueOf(gameConfig.getString("game-state"));
-            } catch (Exception ignored) {
-                KoTH.logWarning(failedMessage + " - invalid game state");
-                continue;
-            }
-
-            SimpleGame simpleGame = new SimpleGame(gameName, gameState);
-            games.put(gameName, simpleGame);
-
-
-            World world = Bukkit.getWorld(gameConfig.getString("region-center.world", ""));
-            if (world != null) {
-                Location regionCenter = new Location(world, gameConfig.getDouble("region-center.x"), gameConfig.getDouble("region-center.y"), gameConfig.getDouble("region-center.z"));
-                simpleGame.setRegionCenter(regionCenter);
-            }
-
-            int regionRadius = gameConfig.getInt("region-radius");
-            if (regionRadius != 0) {
-                simpleGame.setRegionRadius(regionRadius);
-            }
-
-            int captureTime = gameConfig.getInt("capture-time");
-            if (captureTime != 0) {
-                simpleGame.setCaptureTime(captureTime);
-            }
-
-            List<ItemStack> reward = (List<ItemStack>) gameConfig.getList("reward");
-            if (reward != null) {
-                simpleGame.setReward(reward);
-            }
+            loadGame(gameName, config);
         }
 
         getModifyingGamesFuture().complete(null);
@@ -92,6 +59,43 @@ public class GameManager implements Listener {
         saveTask = Bukkit.getScheduler().runTaskTimerAsynchronously(KoTH.getInstance(), this::scheduleSave, saveInterval, saveInterval);
 
         return true;
+    }
+
+    public void loadGame (String gameName, ConfigurationSection config) {
+        String failedMessage = "Failed to load the game " + gameName;
+        ConfigurationSection gameConfig = config.getConfigurationSection(gameName);
+        GameState gameState;
+        try {
+            gameState = GameState.valueOf(gameConfig.getString("game-state"));
+        } catch (Exception ignored) {
+            KoTH.logWarning(failedMessage + " - invalid game state");
+            return;
+        }
+
+        SimpleGame simpleGame = new SimpleGame(gameName, gameState);
+        games.put(gameName, simpleGame);
+
+
+        World world = Bukkit.getWorld(gameConfig.getString("region-center.world", ""));
+        if (world != null) {
+            Location regionCenter = new Location(world, gameConfig.getDouble("region-center.x"), gameConfig.getDouble("region-center.y"), gameConfig.getDouble("region-center.z"));
+            simpleGame.setRegionCenter(regionCenter);
+        }
+
+        int regionRadius = gameConfig.getInt("region-radius");
+        if (regionRadius != 0) {
+            simpleGame.setRegionRadius(regionRadius);
+        }
+
+        int captureTime = gameConfig.getInt("capture-time");
+        if (captureTime != 0) {
+            simpleGame.setCaptureTime(captureTime);
+        }
+
+        List<ItemStack> reward = (List<ItemStack>) gameConfig.getList("reward");
+        if (reward != null) {
+            simpleGame.setReward(reward);
+        }
     }
 
     public CompletableFuture<Void> scheduleSave () {

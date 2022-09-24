@@ -87,26 +87,30 @@ public class SimpleGame extends Game {
         }
 
         if (remainingTicks <= 0) {
-            Bukkit.getPluginManager().callEvent(new KothCapEvent(getName(), leader));
-            setGameState(GameState.FINISHED);
-            Bukkit.broadcastMessage(ChatColor.GREEN + leader.getName() + " is The King of The Hill!");
-            leader.playSound(leader.getLocation(), Sound.ORB_PICKUP, 1, 1);
-            if (leader.isOnline()) {
-                Map<Integer, ItemStack> overflowItems = new HashMap<>();
-                for (ItemStack item : getReward()) {
-                    overflowItems.putAll(leader.getInventory().addItem(item));
-                }
-                overflowItems.values().forEach(item -> {
-                    leader.getLocation().getWorld().dropItemNaturally(leader.getLocation(), item);
-                });
-            }
-            resetRemainingTicks();
+            finishGame();
         } else if (remainingTicks % 4 == 0) {
             leader.sendMessage(ChatColor.GREEN + "Capturing in " + (remainingTicks / 4) + " seconds!");
             leader.playSound(leader.getLocation(), Sound.CLICK, 1, 1);
         }
     }
 
+    @Override
+    public void finishGame () {
+        Bukkit.getPluginManager().callEvent(new KothCapEvent(getName(), leader));
+        setGameState(GameState.FINISHED);
+        Bukkit.broadcastMessage(ChatColor.GREEN + leader.getName() + " is The King of The Hill!");
+        leader.playSound(leader.getLocation(), Sound.ORB_PICKUP, 1, 1);
+        if (leader.isOnline()) {
+            for (ItemStack item : getReward()) {
+                leader.getInventory().addItem(item).values().forEach(overflowItem -> {
+                    leader.getLocation().getWorld().dropItemNaturally(leader.getLocation(), overflowItem);
+                });
+            }
+        }
+        resetRemainingTicks();
+    }
+
+    // Returns a player if he is the only one in the capture area
     private Optional<Player> getControllingPlayer () {
         Optional<Player> controllingPlayer = Optional.empty();
         for (Player player : Bukkit.getOnlinePlayers()) {

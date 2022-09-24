@@ -69,133 +69,148 @@ public class KoTHCommand implements CommandExecutor, Listener {
         }
 
         if (args[0].equalsIgnoreCase("list")) {
-            if (plugin.getGames().getGameList().isEmpty()) {
-                sender.sendMessage(ChatColor.YELLOW + "There are no games. Create one with /" + usedCommand + " create [name]");
-                return true;
-            }
-            sender.sendMessage(ChatColor.YELLOW + "Games:");
-            plugin.getGames().getGameList().forEach(game -> {
-                sender.sendMessage(ChatColor.YELLOW + "- " + game.getName());
-            });
-            return true;
+            listSubcommand(sender, usedCommand);
         } else if (args[0].equalsIgnoreCase("create")) {
-            if (args.length <= 1) {
-                sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " create [name]");
-                return true;
-            }
-
-            Optional<Game> gameOptional = plugin.getGames().getGameByName(args[1]);
-            if (gameOptional.isPresent()) {
-                sender.sendMessage(ChatColor.RED + "This game already exists.");
-                return true;
-            }
-
-            Game game = plugin.getGames().create(args[1]);
-            sender.sendMessage(ChatColor.GREEN + "Game created. Set up all parameters before starting it.");
-            sender.sendMessage(game.getMissingParametersMessage());
-            return true;
+            createSubcommand(sender, usedCommand, args);
         } else if (args[0].equalsIgnoreCase("info")) {
-            if (args.length <= 1) {
-                sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " info [name]");
-                return true;
-            }
-
-            Optional<Game> gameOptional = plugin.getGames().getGameByName(args[1]);
-            if (!gameOptional.isPresent()) {
-                sender.sendMessage(ChatColor.RED + "This game does not exists.");
-                return true;
-            }
-
-            SimpleGame simpleGame = (SimpleGame) gameOptional.get();
-            sender.sendMessage(ChatColor.YELLOW + "Game name: " + simpleGame.getName());
-            sender.sendMessage(ChatColor.YELLOW + "Game state: " + simpleGame.getGameState().toString());
-            if (!simpleGame.isMissingParameter(GameParameter.REGION_CENTER)) {
-                sender.sendMessage(ChatColor.YELLOW + "Region center: " + getLocationString(simpleGame.getRegionCenter()));
-            }
-            if (!simpleGame.isMissingParameter(GameParameter.REGION_RADIUS)) {
-                sender.sendMessage(ChatColor.YELLOW + "Region radius: " + simpleGame.getRegionRadius());
-            }
-            if (!simpleGame.isMissingParameter(GameParameter.CAPTURE_TIME)) {
-                sender.sendMessage(ChatColor.YELLOW + "Capture time: " + simpleGame.getCaptureTime());
-            }
-            if (!simpleGame.isMissingParameter(GameParameter.REWARD)) {
-                sender.sendMessage(ChatColor.YELLOW + "Reward: *view with /" + usedCommand + " [name] setreward*");
-            }
-            if (gameOptional.get().isMissingParameters()) {
-                sender.sendMessage(gameOptional.get().getMissingParametersMessage());
-            }
-
-            return true;
+            infoSubcommand(sender, usedCommand, args);
         } else if (args[0].equalsIgnoreCase("start")) {
-            if (args.length <= 1) {
-                sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " start [name]");
-                return true;
-            }
-
-            Optional<Game> gameOptional = plugin.getGames().getGameByName(args[1]);
-            if (!gameOptional.isPresent()) {
-                sender.sendMessage(ChatColor.RED + "This game does not exists.");
-                return true;
-            }
-
-            if (gameOptional.get().isMissingParameters()) {
-                sender.sendMessage(ChatColor.RED + "Set up all parameters before starting the game.");
-                sender.sendMessage(gameOptional.get().getMissingParametersMessage());
-            } else {
-                plugin.getGames().startGame(gameOptional.get());
-                sender.sendMessage(ChatColor.GREEN + "Game started!");
-            }
-
-            return true;
+            startSubcommand(sender, usedCommand, args);
         } else {
-            Optional<Game> gameOptional = plugin.getGames().getGameByName(args[0]);
-            if (!gameOptional.isPresent() || args.length <= 1) {
-                sender.sendMessage(ChatColor.RED + "Invalid subcommand or specified game does not exists.");
-                return true;
-            }
-
-            Player player = (Player) sender;
-            SimpleGame simpleGame = (SimpleGame) gameOptional.get();
-            if (args[1].equalsIgnoreCase("setregion")) {
-                simpleGame.setRegionCenter(player.getLocation());
-                sender.sendMessage(ChatColor.GREEN + "Capture region set!");
-            } else if (args[1].equalsIgnoreCase("setradius")) {
-                if (args.length <= 2) {
-                    sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " [name] setradius [radius]");
-                    return true;
-                }
-
-                int radius = parsePositiveNumber(args[2]);
-                if (radius <= 0) {
-                    sender.sendMessage(ChatColor.RED + "Radius needs to be a positive number.");
-                    return true;
-                }
-
-                simpleGame.setRegionRadius(radius);
-                sender.sendMessage(ChatColor.GREEN + "Radius set!");
-            } else if (args[1].equalsIgnoreCase("settime")) {
-                if (args.length <= 2) {
-                    sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " [name] settime [seconds]");
-                    return true;
-                }
-
-                int time = parsePositiveNumber(args[2]);
-                if (time <= 0) {
-                    sender.sendMessage(ChatColor.RED + "Time needs to be a positive number.");
-                    return true;
-                }
-
-                simpleGame.setCaptureTime(time);
-                sender.sendMessage(ChatColor.GREEN + "Capture time set!");
-            } else if (args[1].equalsIgnoreCase("setreward")) {
-                openSetRewardWindow(player, simpleGame);
-            } else {
-                printHelp(sender, usedCommand);
-            }
+            gameSubcommand(sender, usedCommand, args);
         }
 
         return true;
     }
+
+    public void listSubcommand (CommandSender sender, String usedCommand) {
+        if (plugin.getGames().getGameList().isEmpty()) {
+            sender.sendMessage(ChatColor.YELLOW + "There are no games. Create one with /" + usedCommand + " create [name]");
+            return;
+        }
+        sender.sendMessage(ChatColor.YELLOW + "Games:");
+        plugin.getGames().getGameList().forEach(game -> {
+            sender.sendMessage(ChatColor.YELLOW + "- " + game.getName());
+        });
+    }
+
+    public void createSubcommand (CommandSender sender, String usedCommand, String[] args) {
+        if (args.length <= 1) {
+            sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " create [name]");
+            return;
+        }
+
+        Optional<Game> gameOptional = plugin.getGames().getGameByName(args[1]);
+        if (gameOptional.isPresent()) {
+            sender.sendMessage(ChatColor.RED + "This game already exists.");
+            return;
+        }
+
+        Game game = plugin.getGames().create(args[1]);
+        sender.sendMessage(ChatColor.GREEN + "Game created. Set up all parameters before starting it.");
+        sender.sendMessage(game.getMissingParametersMessage());
+    }
+
+    public void infoSubcommand (CommandSender sender, String usedCommand, String[] args) {
+        if (args.length <= 1) {
+            sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " info [name]");
+            return;
+        }
+
+        Optional<Game> gameOptional = plugin.getGames().getGameByName(args[1]);
+        if (!gameOptional.isPresent()) {
+            sender.sendMessage(ChatColor.RED + "This game does not exists.");
+            return;
+        }
+
+        SimpleGame simpleGame = (SimpleGame) gameOptional.get();
+        sender.sendMessage(ChatColor.YELLOW + "Game name: " + simpleGame.getName());
+        sender.sendMessage(ChatColor.YELLOW + "Game state: " + simpleGame.getGameState().toString());
+        if (!simpleGame.isMissingParameter(GameParameter.REGION_CENTER)) {
+            sender.sendMessage(ChatColor.YELLOW + "Region center: " + getLocationString(simpleGame.getRegionCenter()));
+        }
+        if (!simpleGame.isMissingParameter(GameParameter.REGION_RADIUS)) {
+            sender.sendMessage(ChatColor.YELLOW + "Region radius: " + simpleGame.getRegionRadius());
+        }
+        if (!simpleGame.isMissingParameter(GameParameter.CAPTURE_TIME)) {
+            sender.sendMessage(ChatColor.YELLOW + "Capture time: " + simpleGame.getCaptureTime());
+        }
+        if (!simpleGame.isMissingParameter(GameParameter.REWARD)) {
+            sender.sendMessage(ChatColor.YELLOW + "Reward: *view with /" + usedCommand + " [name] setreward*");
+        }
+        if (gameOptional.get().isMissingParameters()) {
+            sender.sendMessage(gameOptional.get().getMissingParametersMessage());
+        }
+    }
+
+    public void startSubcommand (CommandSender sender, String usedCommand, String[] args) {
+        if (args.length <= 1) {
+            sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " start [name]");
+            return;
+        }
+
+        Optional<Game> gameOptional = plugin.getGames().getGameByName(args[1]);
+        if (!gameOptional.isPresent()) {
+            sender.sendMessage(ChatColor.RED + "This game does not exists.");
+            return;
+        }
+
+        if (gameOptional.get().isMissingParameters()) {
+            sender.sendMessage(ChatColor.RED + "Set up all parameters before starting the game.");
+            sender.sendMessage(gameOptional.get().getMissingParametersMessage());
+        } else {
+            plugin.getGames().startGame(gameOptional.get());
+            sender.sendMessage(ChatColor.GREEN + "Game started!");
+        }
+    }
+
+    public void gameSubcommand (CommandSender sender, String usedCommand, String[] args) {
+        Optional<Game> gameOptional = plugin.getGames().getGameByName(args[0]);
+        if (!gameOptional.isPresent() || args.length <= 1) {
+            sender.sendMessage(ChatColor.RED + "Invalid subcommand or specified game does not exists.");
+            return;
+        }
+
+        Player player = (Player) sender;
+        SimpleGame simpleGame = (SimpleGame) gameOptional.get();
+        if (args[1].equalsIgnoreCase("setregion")) {
+            simpleGame.setRegionCenter(player.getLocation());
+            sender.sendMessage(ChatColor.GREEN + "Capture region set!");
+        } else if (args[1].equalsIgnoreCase("setradius")) {
+            if (args.length <= 2) {
+                sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " [name] setradius [radius]");
+                return;
+            }
+
+            int radius = parsePositiveNumber(args[2]);
+            if (radius <= 0) {
+                sender.sendMessage(ChatColor.RED + "Radius needs to be a positive number.");
+                return;
+            }
+
+            simpleGame.setRegionRadius(radius);
+            sender.sendMessage(ChatColor.GREEN + "Radius set!");
+        } else if (args[1].equalsIgnoreCase("settime")) {
+            if (args.length <= 2) {
+                sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " [name] settime [seconds]");
+                return;
+            }
+
+            int time = parsePositiveNumber(args[2]);
+            if (time <= 0) {
+                sender.sendMessage(ChatColor.RED + "Time needs to be a positive number.");
+                return;
+            }
+
+            simpleGame.setCaptureTime(time);
+            sender.sendMessage(ChatColor.GREEN + "Capture time set!");
+        } else if (args[1].equalsIgnoreCase("setreward")) {
+            openSetRewardWindow(player, simpleGame);
+        } else {
+            printHelp(sender, usedCommand);
+        }
+    }
+
 
     private void printHelp (CommandSender sender, String usedCommand) {
         sender.sendMessage(ChatColor.GOLD + "-- King of The Hill --" );
