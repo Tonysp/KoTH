@@ -1,6 +1,7 @@
 package dev.tonysp.koth.game;
 
 import dev.tonysp.koth.KoTH;
+import dev.tonysp.koth.events.KothCapEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -86,8 +87,10 @@ public class SimpleGame extends Game {
         }
 
         if (remainingTicks <= 0) {
+            Bukkit.getPluginManager().callEvent(new KothCapEvent(getName(), leader));
             setGameState(GameState.FINISHED);
             Bukkit.broadcastMessage(ChatColor.GREEN + leader.getName() + " is The King of The Hill!");
+            leader.playSound(leader.getLocation(), Sound.ORB_PICKUP, 1, 1);
             if (leader.isOnline()) {
                 Map<Integer, ItemStack> overflowItems = new HashMap<>();
                 for (ItemStack item : getReward()) {
