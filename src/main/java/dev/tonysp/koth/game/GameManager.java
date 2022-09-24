@@ -10,10 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class GameManager implements Listener {
@@ -26,6 +23,7 @@ public class GameManager implements Listener {
     private int gameTickTaskId;
     private BukkitTask saveTask;
     private CompletableFuture<Void> saveFuture;
+    private int saveInterval;
 
     public GameManager (KoTH plugin) {
         this.plugin = plugin;
@@ -38,6 +36,8 @@ public class GameManager implements Listener {
         if (config == null) {
             return false;
         }
+
+        this.saveInterval = plugin.getConfig().getInt("save-interval-ticks", 6000);
 
         for (String gameName : config.getKeys(false)) {
             String failedMessage = "Failed to load the game " + gameName;
@@ -54,7 +54,7 @@ public class GameManager implements Listener {
             games.put(gameName, simpleGame);
 
 
-            World world = Bukkit.getWorld(gameConfig.getString("region-center.world"));
+            World world = Bukkit.getWorld(gameConfig.getString("region-center.world", ""));
             if (world != null) {
                 Location regionCenter = new Location(world, gameConfig.getDouble("region-center.x"), gameConfig.getDouble("region-center.y"), gameConfig.getDouble("region-center.z"));
                 simpleGame.setRegionCenter(regionCenter);
@@ -71,7 +71,9 @@ public class GameManager implements Listener {
             }
 
             List<ItemStack> reward = (List<ItemStack>) gameConfig.getList("reward");
-            simpleGame.setReward(reward);
+            if (reward != null) {
+                simpleGame.setReward(reward);
+            }
         }
 
         getModifyingGamesFuture().complete(null);
@@ -86,12 +88,14 @@ public class GameManager implements Listener {
             endModifyingGames();
         }, 5L, 5L);
 
-        saveTask = Bukkit.getScheduler().runTaskTimerAsynchronously(KoTH.getInstance(), this::scheduleSave, 100, 6000);
+
+        saveTask = Bukkit.getScheduler().runTaskTimerAsynchronously(KoTH.getInstance(), this::scheduleSave, saveInterval, saveInterval);
 
         return true;
     }
 
     public CompletableFuture<Void> scheduleSave () {
+        getModifyingGamesFuture().join();
         saveFuture = CompletableFuture.runAsync(this::save);
         return saveFuture;
     }
@@ -113,8 +117,10 @@ public class GameManager implements Listener {
 
     public CompletableFuture<Void> unloadAsync () {
         Bukkit.getScheduler().cancelTask(gameTickTaskId);
-        saveTask.cancel();
-        if (saveFuture.isDone()) {
+        if (saveTask != null) {
+            saveTask.cancel();
+        }
+        if (saveFuture == null || saveFuture.isDone()) {
             return scheduleSave();
         } else {
             return saveFuture;
@@ -146,5 +152,9 @@ public class GameManager implements Listener {
 
     public void endModifyingGames () {
         modifyingGamesFuture.complete(null);
+    }
+
+    public Collection<Game> getGameList () {
+        return games.values();
     }
 }

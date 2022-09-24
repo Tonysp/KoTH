@@ -54,6 +54,18 @@ public class SimpleGame extends Game {
         remainingTicks = captureTime * 4;
     }
 
+    public Location getRegionCenter () {
+        return regionCenter;
+    }
+
+    public int getRegionRadius () {
+        return regionRadius;
+    }
+
+    public int getCaptureTime () {
+        return captureTime;
+    }
+
     @Override
     public void tick () {
         Optional<Player> controllingPlayer = getControllingPlayer();
@@ -85,8 +97,9 @@ public class SimpleGame extends Game {
                     leader.getLocation().getWorld().dropItemNaturally(leader.getLocation(), item);
                 });
             }
+            resetRemainingTicks();
         } else if (remainingTicks % 4 == 0) {
-            leader.sendMessage(ChatColor.GREEN + "Capturing in " + remainingTicks + " seconds!");
+            leader.sendMessage(ChatColor.GREEN + "Capturing in " + (remainingTicks / 4) + " seconds!");
             leader.playSound(leader.getLocation(), Sound.CLICK, 1, 1);
         }
     }
@@ -112,7 +125,7 @@ public class SimpleGame extends Game {
         FileConfiguration config = KoTH.getInstance().getConfig();
 
         String key = "games." + getName();
-        config.set(key + ".game-state", getGameState());
+        config.set(key + ".game-state", getGameState().toString());
         if (!isMissingParameter(GameParameter.REGION_CENTER)) {
             config.set(key + ".region-center.world", regionCenter.getWorld().getName());
             config.set(key + ".region-center.x", regionCenter.getBlockX());

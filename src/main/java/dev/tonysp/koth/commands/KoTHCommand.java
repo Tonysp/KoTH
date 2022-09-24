@@ -2,9 +2,11 @@ package dev.tonysp.koth.commands;
 
 import dev.tonysp.koth.KoTH;
 import dev.tonysp.koth.game.Game;
+import dev.tonysp.koth.game.GameParameter;
 import dev.tonysp.koth.game.SimpleGame;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -26,7 +28,7 @@ public class KoTHCommand implements CommandExecutor, Listener {
 
     private final KoTH plugin;
 
-    private final String rewardInventoryName = "Insert items you want to set as reward";
+    private final String rewardInventoryName = "Insert reward";
     private final int rewardInventorySize = 9 * 3;
 
     public KoTHCommand (KoTH plugin) {
@@ -56,23 +58,27 @@ public class KoTHCommand implements CommandExecutor, Listener {
             return true;
         }
 
-        if (!sender.hasPermission("koth.admin")) {
+        if (!sender.hasPermission("koth.admin") && !sender.isOp()) {
             sender.sendMessage(ChatColor.RED + "You don't have a permission to do this!");
             return true;
         }
 
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.GOLD + "-- King of The Hill --" );
-            sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "create [name]" + ChatColor.GRAY + " - Create a new game");
-            sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "start [name]" + ChatColor.GRAY + " - Starts the specified game");
-            sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "[name] setregion" + ChatColor.GRAY + " - Sets capture region");
-            sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "[name] setradius [radius]" + ChatColor.GRAY + " - Sets capture region size");
-            sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "[name] settime [seconds]" + ChatColor.GRAY + " - Sets capture time");
-            sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "[name] setreward" + ChatColor.GRAY + " - Sets capture reward");
+            printHelp(sender, usedCommand);
             return true;
         }
 
-        if (args[0].equalsIgnoreCase("create")) {
+        if (args[0].equalsIgnoreCase("list")) {
+            if (plugin.getGames().getGameList().isEmpty()) {
+                sender.sendMessage(ChatColor.YELLOW + "There are no games. Create one with /" + usedCommand + " create [name]");
+                return true;
+            }
+            sender.sendMessage(ChatColor.YELLOW + "Games:");
+            plugin.getGames().getGameList().forEach(game -> {
+                sender.sendMessage(ChatColor.YELLOW + "- " + game.getName());
+            });
+            return true;
+        } else if (args[0].equalsIgnoreCase("create")) {
             if (args.length <= 1) {
                 sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " create [name]");
                 return true;
@@ -87,6 +93,38 @@ public class KoTHCommand implements CommandExecutor, Listener {
             Game game = plugin.getGames().create(args[1]);
             sender.sendMessage(ChatColor.GREEN + "Game created. Set up all parameters before starting it.");
             sender.sendMessage(game.getMissingParametersMessage());
+            return true;
+        } else if (args[0].equalsIgnoreCase("info")) {
+            if (args.length <= 1) {
+                sender.sendMessage(ChatColor.YELLOW + "Usage: /" + usedCommand + " info [name]");
+                return true;
+            }
+
+            Optional<Game> gameOptional = plugin.getGames().getGameByName(args[1]);
+            if (!gameOptional.isPresent()) {
+                sender.sendMessage(ChatColor.RED + "This game does not exists.");
+                return true;
+            }
+
+            SimpleGame simpleGame = (SimpleGame) gameOptional.get();
+            sender.sendMessage(ChatColor.YELLOW + "Game name: " + simpleGame.getName());
+            sender.sendMessage(ChatColor.YELLOW + "Game state: " + simpleGame.getGameState().toString());
+            if (!simpleGame.isMissingParameter(GameParameter.REGION_CENTER)) {
+                sender.sendMessage(ChatColor.YELLOW + "Region center: " + getLocationString(simpleGame.getRegionCenter()));
+            }
+            if (!simpleGame.isMissingParameter(GameParameter.REGION_RADIUS)) {
+                sender.sendMessage(ChatColor.YELLOW + "Region radius: " + simpleGame.getRegionRadius());
+            }
+            if (!simpleGame.isMissingParameter(GameParameter.CAPTURE_TIME)) {
+                sender.sendMessage(ChatColor.YELLOW + "Capture time: " + simpleGame.getCaptureTime());
+            }
+            if (!simpleGame.isMissingParameter(GameParameter.REWARD)) {
+                sender.sendMessage(ChatColor.YELLOW + "Reward: *view with /" + usedCommand + " [name] setreward*");
+            }
+            if (gameOptional.get().isMissingParameters()) {
+                sender.sendMessage(gameOptional.get().getMissingParametersMessage());
+            }
+
             return true;
         } else if (args[0].equalsIgnoreCase("start")) {
             if (args.length <= 1) {
@@ -151,10 +189,24 @@ public class KoTHCommand implements CommandExecutor, Listener {
                 sender.sendMessage(ChatColor.GREEN + "Capture time set!");
             } else if (args[1].equalsIgnoreCase("setreward")) {
                 openSetRewardWindow(player, simpleGame);
+            } else {
+                printHelp(sender, usedCommand);
             }
         }
 
         return true;
+    }
+
+    private void printHelp (CommandSender sender, String usedCommand) {
+        sender.sendMessage(ChatColor.GOLD + "-- King of The Hill --" );
+        sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "list" + ChatColor.GRAY + " - Lists games");
+        sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "create [name]" + ChatColor.GRAY + " - Create a new game");
+        sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "info [name]" + ChatColor.GRAY + " - Prints info about game");
+        sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "start [name]" + ChatColor.GRAY + " - Starts the specified game");
+        sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "[name] setregion" + ChatColor.GRAY + " - Sets capture region");
+        sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "[name] setradius [radius]" + ChatColor.GRAY + " - Sets capture region size");
+        sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "[name] settime [seconds]" + ChatColor.GRAY + " - Sets capture time");
+        sender.sendMessage(ChatColor.GOLD + "/" + usedCommand + " " + ChatColor.YELLOW + "[name] setreward" + ChatColor.GRAY + " - Sets capture reward");
     }
 
     private int parsePositiveNumber (String argument) {
@@ -181,7 +233,7 @@ public class KoTHCommand implements CommandExecutor, Listener {
         if (!inventory.getName().contains(rewardInventoryName)) {
             return;
         }
-        Optional<Game> gameOptional = plugin.getGames().getGameByName(rewardInventoryName.split(" - ")[1]);
+        Optional<Game> gameOptional = plugin.getGames().getGameByName(inventory.getName().split(" - ")[1]);
         if (!gameOptional.isPresent()) {
             return;
         }
@@ -193,8 +245,14 @@ public class KoTHCommand implements CommandExecutor, Listener {
             }
         }
 
+        plugin.getGames().startModifyingGames();
         SimpleGame simpleGame = (SimpleGame) gameOptional.get();
         simpleGame.setReward(newReward);
+        plugin.getGames().endModifyingGames();
         event.getPlayer().sendMessage(ChatColor.GREEN + "Reward set!");
+    }
+
+    private String getLocationString (Location location) {
+        return location.getWorld().getName() + " (" + location.getBlockX() + ", " + location.getBlockY() + ", " + location.getBlockZ() + ")";
     }
 }

@@ -1,6 +1,6 @@
 name: KoTH
 main: dev.tonysp.koth.KoTH
-version: ${pluginVersion}
+version: 1.0
 authors: [Tonysp]
 description: KoTH plugin
 

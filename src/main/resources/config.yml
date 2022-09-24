@@ -1,11 +1,2 @@
-games:
-  game1:
-    game-state: PREPARED
-    region-center:
-      world: "world1"
-      x: 0
-      y: 0
-      z: 0
-    region-radius: 10
-    capture-time: 10
-    reward: ""
+save-interval-ticks: 6000
+games: []
