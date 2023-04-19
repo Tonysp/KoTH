@@ -6,6 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.event.Listener;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -18,6 +19,7 @@ public class GameManager implements Listener {
     private final KoTH plugin;
 
     private final Map<String, Game> games = new HashMap<>();
+    private final Map<Inventory, Game> gameRewardInventories = new HashMap<>();
 
     private CompletableFuture<Void> modifyingGamesFuture = new CompletableFuture<>();
     private int gameTickTaskId;
@@ -160,5 +162,9 @@ public class GameManager implements Listener {
 
     public Collection<Game> getGameList () {
         return games.values();
+    }
+
+    public Map<Inventory, Game> getGameRewardInventories () {
+        return gameRewardInventories;
     }
 }

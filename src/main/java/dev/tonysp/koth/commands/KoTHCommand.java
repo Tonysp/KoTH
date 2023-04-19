@@ -27,8 +27,6 @@ import java.util.Optional;
 public class KoTHCommand implements CommandExecutor, Listener {
 
     private final KoTH plugin;
-
-    private final String rewardInventoryName = "Insert reward";
     private final int rewardInventorySize = 9 * 3;
 
     public KoTHCommand (KoTH plugin) {
@@ -233,25 +231,23 @@ public class KoTHCommand implements CommandExecutor, Listener {
     }
 
     private void openSetRewardWindow (Player player, SimpleGame simpleGame) {
-        Inventory inventory = Bukkit.createInventory(player, rewardInventorySize, rewardInventoryName + " - " + simpleGame.getName());
+        Inventory inventory = Bukkit.createInventory(player, rewardInventorySize, "Insert reward - " + simpleGame.getName());
         int i = 0;
         for (ItemStack item : simpleGame.getReward()) {
             inventory.setItem(i ++, item);
         }
         player.openInventory(inventory);
+        plugin.getGames().getGameRewardInventories().put(inventory, simpleGame);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onInventoryCloseEvent (InventoryCloseEvent event) {
         Inventory inventory = event.getInventory();
 
-        if (!inventory.getName().contains(rewardInventoryName)) {
+        if (!plugin.getGames().getGameRewardInventories().containsKey(inventory)) {
             return;
         }
-        Optional<Game> gameOptional = plugin.getGames().getGameByName(inventory.getName().split(" - ")[1]);
-        if (!gameOptional.isPresent()) {
-            return;
-        }
+        Game game = plugin.getGames().getGameRewardInventories().get(inventory);
 
         List<ItemStack> newReward = new ArrayList<>();
         for (int i = 0; i < rewardInventorySize; i++) {
@@ -261,10 +257,11 @@ public class KoTHCommand implements CommandExecutor, Listener {
         }
 
         plugin.getGames().startModifyingGames();
-        SimpleGame simpleGame = (SimpleGame) gameOptional.get();
+        SimpleGame simpleGame = (SimpleGame) game;
         simpleGame.setReward(newReward);
         plugin.getGames().endModifyingGames();
         event.getPlayer().sendMessage(ChatColor.GREEN + "Reward set!");
+        plugin.getGames().getGameRewardInventories().remove(inventory);
     }
 
     private String getLocationString (Location location) {
